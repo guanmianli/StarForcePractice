@@ -10,7 +10,7 @@ StarForcePractice是一个对**[StarForce](https://github.com/EllanJiang/StarFor
 
 + 本地创建一个名为`StarForcePractice`项目并添加README.md文件作为学习笔记。
 
-![image-20200623104123214](README.assets/image-20200623104123214.png)
+![image-20200623104123214](https://github.com/guanmianli/StarForcePractice/blob/master/README.assets/README.assets/image001.png)
 
 + `Github`创建一个同名仓库，不勾选`README`初始化，因为我们上面已经创建了
 
@@ -22,4 +22,5 @@ StarForcePractice是一个对**[StarForce](https://github.com/EllanJiang/StarFor
 
 + 将本地仓库与远程仓库关联
   ![image-20200623105658038](README.assets/image-20200623105658038.png)
-+ 将本地仓库所有内容推送到远程
++ 使用`git add .`和 `git commit -m"首次提交"`命令进行首次提交。
++ 使用`git push -u origin master`将本地仓库所有内容推送到远程仓库。
