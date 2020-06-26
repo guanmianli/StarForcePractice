@@ -139,12 +139,66 @@ namespace StarForce
 
 ![image-20200623154511265](README.assets/image-20200623154511265.png)
 
-### 初识Procedure
-
 #### 场景相机设置
 
 + 命名为`Camera`，重置`Transform`，清除`Tag`设置，设置背景色为纯黑色。
 + 设置相机的渲染内容`Culling Mask`为`Nothing`，缩小相机的可视范围`Clipping Planes`，取消勾选`HDR`。
+
+### HelloWord实现
+
+#### :small_blue_diamond:初识流程模块 - Procedure Component
+
+> **流程贯穿游戏运行时整个生命周期的有限状态机。**通过流程，将不同的游戏状态进行解耦将是一个非常好的习惯。对于网络游戏，你可能需要如检查资源流程、更新资源流程、检查服务器列表流程、选择服务器流程、登录服务器流程、创建角色流程等流程，而对于单机游戏，你可能需要在游戏选择菜单流程和游戏实际玩法流程之间做切换。如果想增加流程，**只要派生自 ProcedureBase 类并实现自己的流程类即可使用。**
+
++ 我们需要知道的点是：**流程是对有限状态机的再封装，许多流程相关的用法和有限状态机是类似的。**
++ 创建测试用的流程`ProcedureTest`
+
+![image-20200627050624335](README.assets/image-20200627050624335.png)
+
+```c#
+using GameFramework.Procedure;
+using ProcedureOwner = GameFramework.Fsm.IFsm<GameFramework.Procedure.IProcedureManager>;
+namespace StarForcePractice
+{
+    public class ProcedureTest : ProcedureBase
+    {
+        protected override void OnEnter(ProcedureOwner procedureOwner)
+        {
+            base.OnEnter(procedureOwner);
+            Debug.Log("Hello World!");
+        }
+    }
+}
+```
+
++ 在流程组件上配置我们的流程，勾选启用我们的流程，并将其设置为入口流程`Entrance Procedure`
+
+![image-20200627050905526](README.assets/image-20200627050905526.png)
+
+#### :small_blue_diamond:日志工具集
+
++ 框架内部也为我们提供了打印日志的工具，不同的是，我们可以一键开启或关闭日志的打印，这样就不用担心忘记注释，发布后日志输出带来性能损耗。
+
+```c#
+// 打印调试级别日志，用于记录调试类日志信息
+Log.Debug("Hello World!");
+
+// 打印信息级别日志，用于记录程序正常运行日志信息
+Log.Info("Hello World!");
+
+// 打印警告级别日志，建议在发生局部功能逻辑错误，但尚不会导致游戏崩溃或异常时使用
+Log.Warning("Hello World!");
+
+// 打印错误级别日志，建议在发生功能逻辑错误，但尚不会导致游戏崩溃或异常时使用
+Log.Error("Hello World!");
+
+// 打印严重错误级别日志，建议在发生严重错误，可能导致游戏崩溃或异常时使用，此时应尝试重启进程或重建游戏框架
+Log.Fatal("Hello World!");
+```
+
+![image-20200627052305624](README.assets/image-20200627052305624.png)
+
+> 打印日志的开销非常大（尤其是内存方面），所以在正式发布游戏时，尽量选取 Disable All Logs（关闭所有日志）或者 Enable Error And Above Logs（仅开启错误及以上级别日志）。
 
 ### UI模块
 
@@ -180,7 +234,7 @@ namespace StarForce
 >
   > 需要注意的是，在`UnityGameFramework`中提供的`DefaultUIGroupHelper`默认界面组辅助器并没有任何实现。我盲猜作者可能考虑到用户使用的UI方案不同，所以默认界面组辅助器就留空了。（ps：请叫我心理分析大师:laughing:）
   > 在`StarForce`示例中，作者实现了`UGuiGroupHelper`UGUI界面辅助器，使用`UGUI`可以参考此界面组辅助器。
-  
+
   6.UI Groups：界面组设置，我们根据需要在`Inspector`中设置界面组，需要设置名字和深度值，内部会根据设置在根节点下生成所有界面组。
 
 + OK，接下来运行下示例，我们再好好体会一下
