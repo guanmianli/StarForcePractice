@@ -60,7 +60,7 @@ OK，到此项目所有准备工作就完成了，就下来就开始开发了~
 > GF对很多游戏开发常用模块进行了封装，很大程度地规范开发过程、加快开发速度并保证产品质量。
 
 + 既然有内置组件，那么框架肯定也为我们提供了创建自定义组件的接口，只需要继承自框架的`GameFrameworkComponent`类。
-+ 在`Game Framework`父节点下在创建一个空物体`Customs`用于存放我们的自定义组件，然后将预制体名字修改为`Built-in`意思是内置的组件。
++ 在`Game Framework`父节点下创建一个空物体`Customs`用于存放我们的自定义组件，然后将预制体名字修改为`Built-in`意思是内置的组件。
 
 ![image-20200623145802689](README.assets/image-20200623145802689.png)
 
@@ -281,6 +281,149 @@ Log.Fatal("Hello World!");
 + 啊哈，这就更加纳闷了，我们的`MenuForm`直接继承`UIForm`不香吗？为什么作者还要再写一个`UIFormLogic `把`UIForm`中的方法搬到里面去，而且最难受的是它俩还要互相持有引用。好吧，只看了一丢丢代码，暂时还不清楚作者这么设计的原因，**先挖个坑**。
 + 对了，忘了说示例里作者还写了`UGuiForm`对`UIFormLogic`进行了拓展，大部分逻辑都是为该示例需求服务的，我们按照自己项目需求进行拓展即可。
 
-OpenUIForm API底层做了哪些事？
+#### 制作MenuForm界面预制体
 
++ 在示例项目中，把`MenuForm`预制体拖放到`UI`根节点下，然后照着制作即可。
 
++ `MenuForm`界面效果以及层次结构如下图所示：
+
+![image-20200628100126140](README.assets/image-20200628100126140.png)
+
+![image-20200628100052370](README.assets/image-20200628100052370.png)
+
+> 不知道你们有没有注意到，有个细节就是作者创建空物体会把`Rect`的尺寸都设置为0，这应该也是一个小优化吧（我瞎猜的 = = ），跟着大佬做就是了。
+
++ :o:我们在创建`Text`组件的时候，由于它只是用来展示信息，不需要与用户交互，所以应该把`RaycastTarget`取消勾选以优化性能，这是作者忽略掉的小细节。另外`Rich Text`用不到也应该取消勾选，这样底层就不会去检测富文本了。
+
++ 按钮这里作者没有使用`UGUI`的`Button`组件，可能是用不到这个组件的大部分功能吧，所以就自己写了一个轻便的版本`CommonButton`组件，我们可以直接拿来使用。
++ 把`CommonButton`和`UIExtension`脚本都拷贝过来，`UIExtension`中只留我们用到的方法`FadeToAlpha`，其它的都暂时注释掉。
+
+![image-20200628103339989](README.assets/image-20200628103339989.png)
+
+> UIExtension：是对一些用到UI组件提供扩展方法，方便在操作`UI`组件的时候使用。
+
++ `CommonButton`脚本我们需要修改一下，把事件封装成属性，方便外部绑定监听，作者可能为了方便在面板上直接绑定方法，这里我们还是要规范一下。
+
+```c#
+[SerializeField]
+private UnityEvent m_OnHover = null;
+public UnityEvent OnHover
+{
+    get
+    {
+        if (m_OnHover == null)
+            m_OnHover = new UnityEvent();
+        return m_OnHover;
+    }
+}
+[SerializeField]
+private UnityEvent m_OnClick = null;
+public UnityEvent OnClick
+{
+    get
+    {
+        if (m_OnClick == null)
+            m_OnClick = new UnityEvent();
+        return m_OnClick;
+    }
+}
+```
+
++ 按钮制作好后我们，将它制作成预制体以复用，后续也方便批量修改。
+
+![image-20200628105151909](README.assets/image-20200628105151909.png)
+
+#### :small_blue_diamond:窗体的加载与显示
+
+**接下来，我们又有新问题了，怎么加载和显示我们的`UI`界面呢？**
+
++ 结合之前学到的流程，我们了解到需要创建一个菜单流程`ProcedureMenu`，然后在流程中加载并显示我们的默认窗体。
+
++ 打开一个窗体我们使用`IUIManager`中`OpenUIForm`方法，这个方法的底层逻辑是比较复杂的，需要好好捋捋。
+
+  > 当我们调用这个方法的时候执行了以下操作：
+  >
+  > 1.首先尝试从对象池中取出该窗体，取得到就调用``InternalOpenUIForm``方法打开。
+  >
+  > 取不到就加载一个，加载方法传进去了`m_LoadAssetCallbacks`资源加载回调，加载完成后调用``InternalOpenUIForm``打开该窗体。
+  > 【源码指南】
+  >
+  > `UIManager.cs`中的`OpenUIForm`方法 ...752行~761行
+  >
+  > 2.在`InternalOpenUIForm`方法中不只是执行了打开窗体操作这么简单...
+  >
+  > + 首先会使用`UI`窗体辅助器创建加载好的窗体，然后调用该窗体所在窗体组的刷新方法`Refresh`。
+  >
+  > + `Refresh`方法中，会根据`UI`窗体的深度以及其它相关信息来控制该`UI`窗体界面的状态。（粗略看了一下，大概是这么个意思），这就是为什么我们打开一个窗体，之前的窗体会自动隐藏，关闭一个窗体，之前的窗体会自动显示，内部已经帮我们自动管理了。
+  >
+  >   **OK，现在我们终于知道深度值是干啥的，它用来控制`UI`窗体组和`UI`窗体的顺序（显示隐藏等），前面挖的坑填了一个~**
+  >
+  > 【源码指南】
+  >
+  > `UIManager.cs`中的`InternalOpenUIForm`方法 ...944行、953行。
+  >
+  > `UIManager.UIGroup.cs`中`Refresh`方法 ...393行。
+
+#### :small_blue_diamond:初识资源管理模块 - Resource Component
+
+经过上面的一番瞎折腾:sweat_smile:...我们知道了`OpenUIForm`用来加载和打开一个窗体，那么是怎么加载的呢，我们又该怎么配置窗体预制体的路径？
+资源加载嘛，那肯定就和`Resource `相关，顺藤摸瓜我在`UIComponent`中找到了如下代码：
+
+![image-20200628140915364](README.assets/image-20200628140915364.png)
+哦豁，这很明显就是一个新模块，`UI模块`加载窗体使用了`资源管理模块`，直接上官方说明：
+
+> 为了保证玩家的体验，我们不推荐再使用同步的方式加载资源，由于 Game Framework 自身使用了一套完整的异步加载资源体系，因此只提供了异步加载资源的接口。不论简单的数据表、本地化字典，还是复杂的实体、场景、界面，我们都将使用异步加载。同时，Game Framework 提供了默认的内存管理策略（当然，你也可以定义自己的内存管理策略）。多数情况下，在使用 GameObject 的过程中，你甚至可以不需要自行进行 Instantiate 或者是 Destroy 操作。
+
+老规矩，首先，我们查看框架提供的Resource 组件，看Inspector上有哪些属性，它们是设置什么的？
+![image-20200628150014357](README.assets/image-20200628150014357.png)
+
++ `Inspector`面板参数详解：
+
+  ResourceMode：资源模式，默认`Package`是单机模式，其它两种应该是和热更新有关的模式。
+
+  Read Write Path Type：读写区路径类型，设置是临时缓存还是持久化数据。
+
+  UnloadUnusedAssetsInterval：无用资源释放间隔时间
+
+  绿框：资源对象池相关设置
+
+  Instance Root：根节点
+
+  Resource Helper：资源辅助器
+
+  Load ResourceAgent Helper：加载资源代理辅助器
+
+  Load ResourceAgent Helper Count：加载资源代理辅助器个数
+
+:small_blue_diamond:初识数据表模块 - DataTable Component
+
+既然`OpenUIForm`可以加载窗体，那么它传入的参数中一定有预制体的路径，继续顺藤摸瓜，在`UIExtension`找到作者对`OpenUIForm`方法的扩展：
+
+![image-20200628153020538](README.assets/image-20200628153020538.png)
+
+哦豁，又引入了一个新模块 - 数据表模块
+
+> 可以将游戏数据以表格（如 Microsoft Excel）的形式进行配置后，使用此模块使用这些数据表。数据表的格式是可以自定义的。
+
++ 首先我们看一下`DRUIForm`是个什么东西，从上面代码来看的话，就是将窗体配置`Excel`中的数据表解析后的结果复制给`DRUIForm`这个数据结构。
++ 让我有点惊讶的是，这个脚本是自动生成的，厉害了~
+
+![image-20200628154053653](README.assets/image-20200628154053653.png)
+
++ 接着我们看一下`AssetUtility`，路径终于找到了，就是根据数据表中对应的数据的窗体名返回预制体所在路径。
+
+![image-20200628154249954](README.assets/image-20200628154249954.png)
+
++ `OpenUIForm`传入的`UIFormId`就是窗体的唯一标识了
+
+![image-20200628154944445](README.assets/image-20200628154944445.png)
+
+**整体的逻辑就是：传入界面编号 > 在数据表中找到对应的行 >  获取找到的数据中窗体的名称 > 找到该窗体预制体的路径 > 将路径传递给资源加载器，加载界面 >  加载完成后回调触发，界面显示**
+
++ 数据表位于`GameMain/DataTables/UIForm`，可以看到里面的`id`与上面枚举设置是一样的，之所以写成枚举是为了方便使用。
+
+![image-20200628155800972](README.assets/image-20200628155800972.png)
+
++ 自动生成的脚本位于`GameMain/Scripts/Editor/DataTableGenerator`中，逻辑比较繁琐，有兴趣的可以研究一下，这里我就不再赘述了。
+
+#### 加载MenuForm窗体并显示
