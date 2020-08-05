@@ -1,5 +1,3 @@
-
-
 ## StarForcePractice 简介
 
 StarForcePractice是一个对[StarForce](https://github.com/EllanJiang/StarForce)的Copy练习项目，主要目的是学会Game Framework框架的使用，下面是一些个人的学习记录。
@@ -427,3 +425,57 @@ public UnityEvent OnClick
 + 自动生成的脚本位于`GameMain/Scripts/Editor/DataTableGenerator`中，逻辑比较繁琐，有兴趣的可以研究一下，这里我就不再赘述了。
 
 #### 加载MenuForm窗体并显示
+
+## [有限状态机](https://baike.hk.xileso.top/wiki/%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E6%9C%BA)
+
+> 有限状态机（FSM - Finite-State Machine），又称有限状态自动机（FSA - Finite-State Automation），简称状态机，是表示有限个[状态](https://baike.hk.xileso.top/baike-状态)以及在这些状态之间的转移和动作等行为的[数学计算模型](https://baike.hk.xileso.top/baike-计算模型_(数学))
+
+在没有状态机之前，判断状态都需要用到以下`switch`代码，项目中用到地方越多，状态的维护会变得越来越麻烦。
+
+```c#
+switch(人物生命状态)
+{
+    case Alive:
+        // do something();
+    case Injured:    
+        // do something();
+    case Died:    
+        // do something();
+}
+switch(人物运动状态)
+{
+    case Run:
+        // do something();
+    case Idle:
+        // do something();
+    case Walk:
+        // do something();
+    break;
+}
+```
+
+有限状态机就是用来集中管理状态的，那么怎么设计一个有限状态机呢?
+
+### 设计
+
+有限状态机包含两个部分：状态集（FSMState），状态管理机（FSMSystem）
+
++ 状态集代表状态的集合，比如上面人的状态集就包括两组：生命状态、运动状态
+
+```c#
+class PlayerState
+{
+    enum LifeState{
+        Alive,
+        Injured,
+        Died
+    }
+    enum MotionState{
+        Idle,
+        Walk,
+        Run
+    }
+}
+```
+
+一个游戏中多个状态集，所以在设计`FSMState`的时候将它设计为抽象类

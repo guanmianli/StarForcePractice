@@ -7,7 +7,7 @@
 
 using UnityEngine;
 
-namespace StarForce
+namespace StarForcePractice
 {
     /// <summary>
     /// 游戏入口。
